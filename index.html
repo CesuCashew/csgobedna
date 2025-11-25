@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS:GO Slot Casino</title>
+    <style>
+        :root {
+            --bg-dark: #0b0b0d;
+            --bg-panel: rgba(30, 30, 36, 0.6);
+            --accent-gold: #FCA311;
+            --accent-red: #FF4444;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+            --rarity-blue: #4b69ff;
+            --rarity-purple: #8847ff;
+            --rarity-pink: #d32ce6;
+            --rarity-red: #eb4b4b;
+            --rarity-gold: #e4ae39;
+            --card-width: 180px;
+            --card-height: 240px;
+            --gap: 10px;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(75, 105, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(211, 44, 230, 0.05) 0%, transparent 40%);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transition: background 1s;
+        }
+
+        /* --- Bonus Modes --- */
+        body.bonus-active {
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(252, 163, 17, 0.2) 0%, transparent 60%),
+                radial-gradient(circle at 50% 100%, rgba(252, 163, 17, 0.1) 0%, transparent 50%);
+        }
+
+        body.bonus-active .reel-wrapper {
+            box-shadow: 0 0 100px rgba(252, 163, 17, 0.3) inset;
+            border-color: var(--accent-gold);
+            transition: all 1s;
+        }
+
+        /* --- Header & Stats --- */
+        header {
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 10;
+            position: sticky;
+            top: 0;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(252, 163, 17, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .logo span {
+            color: var(--accent-gold);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-box {
+            background: var(--bg-panel);
+            backdrop-filter: blur(12px);
+            padding: 10px 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .balance-value {
+            color: var(--accent-gold);
+            text-shadow: 0 0 15px rgba(252, 163, 17, 0.3);
+        }
+
+        /* --- Main Stage --- */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 1400px;
+            position: relative;
+            padding: 40px 0;
+        }
+
+        /* --- Reel Container --- */
+        .reel-wrapper {
+            width: 100%;
+            height: 320px;
+            position: relative;
+            background: rgba(10, 10, 12, 0.8);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            margin-bottom: 50px;
+            perspective: 1000px;
+            /* Enable 3D */
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.8) inset;
+        }
+
+        .reel-wrapper::before,
+        .reel-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 150px;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .reel-wrapper::before {
+            left: 0;
+            background: linear-gradient(to right, var(--bg-dark), transparent);
+        }
+
+        .reel-wrapper::after {
+            right: 0;
+            background: linear-gradient(to left, var(--bg-dark), transparent);
+        }
+
+        /* REFINEMENT: Arrow Indicator */
+        .center-line {
+            position: absolute;
+            left: 50%;
+            top: -20px;
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 20px solid var(--accent-gold);
+            transform: translateX(-50%);
+            z-index: 5;
+            filter: drop-shadow(0 0 10px var(--accent-gold));
+            background: none;
+            box-shadow: none;
+            border-radius: 0;
+        }
+
+        .reel {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            position: absolute;
+            left: 50%;
+            will-change: transform;
+            transform-style: preserve-3d;
+            /* 3D children */
+        }
+
+        /* --- Card Styles --- */
+        .card {
+            width: var(--card-width);
+            height: var(--card-height);
+            background: #1a1a20;
+            margin-right: var(--gap);
+            flex-shrink: 0;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            border-bottom: 4px solid #333;
+            transition: transform 0.2s, filter 0.2s;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Glass Reflection Overlay */
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        .card img {
+            width: 90%;
+            height: auto;
+            object-fit: contain;
+            margin-top: 10px;
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
+            transition: transform 0.3s;
+        }
+
+        .card:hover img {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .card-info {
+            width: 100%;
+            text-align: left;
+            padding: 5px;
+            z-index: 1;
+        }
+
+        .card-name {
+            font-size: 11px;
+            color: #888;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-skin {
+            font-size: 13px;
+            font-weight: 800;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+
+        .card-price {
+            font-size: 14px;
+            color: var(--accent-gold);
+            font-weight: 700;
+            margin-top: 4px;
+            text-shadow: 0 0 10px rgba(252, 163, 17, 0.2);
+        }
+
+        /* Rarities */
+        .rarity-blue {
+            border-bottom-color: var(--rarity-blue);
+            background: linear-gradient(180deg, #1a1a20 0%, rgba(75, 105, 255, 0.15) 100%);
+        }
+
+        .rarity-purple {
+            border-bottom-color: var(--rarity-purple);
+            background: linear-gradient(180deg, #1a1a20 0%, rgba(136, 71, 255, 0.15) 100%);
+        }
+
+        .rarity-pink {
+            border-bottom-color: var(--rarity-pink);
+            background: linear-gradient(180deg, #1a1a20 0%, rgba(211, 44, 230, 0.15) 100%);
+        }
+
+        .rarity-red {
+            border-bottom-color: var(--rarity-red);
+            background: linear-gradient(180deg, #1a1a20 0%, rgba(235, 75, 75, 0.15) 100%);
+            box-shadow: 0 0 15px rgba(235, 75, 75, 0.1) inset;
+        }
+
+        .rarity-gold {
+            border-bottom-color: var(--rarity-gold);
+            background: linear-gradient(180deg, #1a1a20 0%, rgba(228, 174, 57, 0.15) 100%);
+            box-shadow: 0 0 20px rgba(228, 174, 57, 0.15) inset;
+        }
+
+        /* Scatter Special */
+        .card.scatter {
+            border: 2px solid var(--accent-gold);
+            box-shadow: 0 0 30px rgba(252, 163, 17, 0.3) inset, 0 0 20px rgba(252, 163, 17, 0.2);
+            animation: pulse-gold 2s infinite;
+        }
+
+        @keyframes pulse-gold {
+            0% {
+                box-shadow: 0 0 30px rgba(252, 163, 17, 0.3) inset;
+            }
+
+            50% {
+                box-shadow: 0 0 50px rgba(252, 163, 17, 0.6) inset;
+            }
+
+            100% {
+                box-shadow: 0 0 30px rgba(252, 163, 17, 0.3) inset;
+            }
+        }
+
+        /* --- Controls --- */
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            z-index: 10;
+        }
+
+        .btn {
+            padding: 18px 50px;
+            font-size: 18px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-spin {
+            background: var(--accent-gold);
+            color: #000;
+            box-shadow: 0 10px 30px rgba(252, 163, 17, 0.3);
+        }
+
+        .btn-spin::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: rotate(45deg) translateY(-100%);
+            transition: transform 0.5s;
+        }
+
+        .btn-spin:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(252, 163, 17, 0.5);
+        }
+
+        .btn-spin:hover::after {
+            transform: rotate(45deg) translateY(100%);
+        }
+
+        .btn-spin:active {
+            transform: translateY(2px);
+        }
+
+        .btn-spin:disabled {
+            filter: grayscale(1);
+            cursor: not-allowed;
+            opacity: 0.7;
+            transform: none;
+        }
+
+        /* Button States */
+        .btn-spin.frenzy {
+            background: #d32ce6;
+            box-shadow: 0 0 30px rgba(211, 44, 230, 0.6);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-spin.high-roller {
+            background: #eb4b4b;
+            box-shadow: 0 0 30px rgba(235, 75, 75, 0.6);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* --- Modal / Bonus --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(15px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: rgba(20, 20, 25, 0.8);
+            border: 1px solid rgba(252, 163, 17, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(252, 163, 17, 0.1);
+            padding: 50px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            border-radius: 20px;
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .bonus-title {
+            font-size: 42px;
+            font-weight: 900;
+            color: var(--accent-gold);
+            margin: 0 0 15px 0;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            text-shadow: 0 0 30px rgba(252, 163, 17, 0.6);
+        }
+
+        .bonus-desc {
+            font-size: 18px;
+            color: #ccc;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .bonus-badge {
+            display: inline-block;
+            padding: 12px 30px;
+            background: var(--accent-red);
+            color: white;
+            font-weight: 900;
+            font-size: 28px;
+            transform: rotate(-3deg);
+            margin-bottom: 25px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* --- Animations --- */
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-2px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(4px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-6px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(6px, 0, 0);
+            }
+        }
+
+        .flash {
+            animation: flash 0.3s;
+        }
+
+        @keyframes flash {
+            0% {
+                background-color: rgba(255, 255, 255, 0.3);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        /* --- Last Drop History --- */
+        .history {
+            margin-top: 40px;
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            width: 100%;
+            padding: 20px;
+            justify-content: center;
+            scrollbar-width: none;
+            /* Hide scrollbar */
+        }
+
+        .history::-webkit-scrollbar {
+            display: none;
+        }
+
+        .history-item {
+            width: 120px;
+            height: 160px;
+            border-radius: 12px;
+            background: rgba(30, 30, 36, 0.5);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            transition: transform 0.2s, background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .history-item:hover {
+            transform: translateY(-5px);
+            background: rgba(40, 40, 48, 0.8);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .history-item img {
+            width: 80%;
+            height: auto;
+            filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5));
+            margin-bottom: 10px;
+        }
+
+        .history-info {
+            text-align: center;
+            width: 100%;
+        }
+
+        .history-name {
+            font-size: 10px;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-price {
+            font-size: 12px;
+            color: var(--text-main);
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        .history-item.rarity-red {
+            border-bottom: 3px solid var(--rarity-red);
+        }
+
+        .history-item.rarity-gold {
+            border-bottom: 3px solid var(--rarity-gold);
+        }
+
+        .history-item.rarity-pink {
+            border-bottom: 3px solid var(--rarity-pink);
+        }
+
+        .history-item.rarity-purple {
+            border-bottom: 3px solid var(--rarity-purple);
+        }
+
+        .history-item.rarity-blue {
+            border-bottom: 3px solid var(--rarity-blue);
+        }
+
+        /* --- Drop Table --- */
+        .drop-table-container {
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 20px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .drop-table-header {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .drop-item {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .drop-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .drop-item img {
+            width: 50px;
+            height: auto;
+            margin-right: 15px;
+            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+        }
+
+        .drop-info {
+            flex: 1;
+        }
+
+        .drop-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+
+        .drop-chance {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .drop-bar {
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .drop-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+        }
+
+        /* Rarity Borders for Table */
+        .drop-item.rarity-blue {
+            border-left: 3px solid var(--rarity-blue);
+        }
+
+        .drop-item.rarity-purple {
+            border-left: 3px solid var(--rarity-purple);
+        }
+
+        .drop-item.rarity-pink {
+            border-left: 3px solid var(--rarity-pink);
+        }
+
+        .drop-item.rarity-red {
+            border-left: 3px solid var(--rarity-red);
+        }
+
+        .drop-item.rarity-gold {
+            border-left: 3px solid var(--rarity-gold);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">GABEN<span style="color:white">CASINO</span></div>
+        <div class="stats">
+            <div class="stat-box">
+                <span class="stat-label">Balance</span>
+                <span class="stat-value balance-value">$<span id="balance">1000.00</span></span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Last Win</span>
+                <span class="stat-value" id="last-win">$0.00</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="reel-wrapper" id="reel-wrapper">
+            <div class="center-line"></div>
+            <div class="reel" id="reel">
+                <!-- Cards injected via JS -->
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-spin" id="spin-btn">OPEN CASE ($2.50)</button>
+        </div>
+
+        <!-- Drop Table -->
+        <div class="drop-table-container">
+            <div class="drop-table-header">
+                <span>Case Contents</span>
+                <span>Odds</span>
+            </div>
+            <div class="drop-grid" id="drop-grid">
+                <!-- Items injected via JS -->
+            </div>
+        </div>
+
+        <div class="history" id="history-container">
+            <!-- History items -->
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <div class="bonus-badge" id="bonus-badge">BONUS!</div>
+            <h2 class="bonus-title" id="bonus-title">SCATTER HIT</h2>
+            <p class="bonus-desc" id="bonus-desc">Triggering special event...</p>
+        </div>
+    </div>
+
+    <script>
+        /* --- CONFIG & DATA --- */
+        const CONFIG = {
+            cardWidth: 180,
+            gap: 10,
+            totalCards: 70, // Number of cards in the reel strip
+            winnerIndex: 55, // The index that will land in center
+            spinDuration: 5000, // ms
+            casePrice: 2.50,
+            scatterChance: 0.05 // 5% chance
+        };
+
+        const ITEMS = [
+            { name: "AK-47", skin: "Asiimov", rarity: "red", price: 120.50, img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlPPNSIeOaB2qf19F6ueZhW2e2wEt-t2jcytf6dymSO1JxA5oiRecLsRa5kIfkYr-241aLgotHz3-rkGoXuUp8oX57" },
+            { name: "M4A4", skin: "Howl", rarity: "red", price: 2500.00, img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afVSKP-EAm6extF6ueZhW2exwkl2tmTXwt39eCiUPQR2DMN4TOVetUK8xoLgM-K341eM2otDnC6okGoXufBz_TAB" },
+            { name: "AWP", skin: "Dragon Lore", rarity: "gold", price: 5000.00, img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV" },
+            { name: "USP-S", skin: "Kill Confirmed", rarity: "red", price: 85.00, img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSI-WsG3SA_uV_vO1WTCa9kxQ1vjiBpYPwJiPTcFB2Xpp5TO5cskG9lYCxZu_jsVCL3o4Xnij23ClO5ik9tegFA_It8qHJz1aWe-uc160" },
+            { name: "Glock-18", skin: "Fade", rarity: "pink", price: 600.00, img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL2kpnj9h1a7s2oaaBoH_yaCW-Ej-8u5bZvHnq1w0Vz62TUzNj4eCiVblMmXMAkROJeskLpkdXjMrzksVTAy9US8PY25So" },
+            { name: "Desert Eagle", skin: "Blaze", rarity: "purple", price: 400.00, img: "https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7vORbqhsLfWAMWuZxuZi_uI_TX6wxxkjsGXXnImsJ37COlUoWcByEOMOtxa5kdXmNu3htVPZjN1bjXKpkHLRfQU/330x192?allow_animated=1" },
+            { name: "P250", skin: "Sand Dune", rarity: "blue", price: 0.03, img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwjFU0OGvZqBSLPmUBnPelesn5-RrSXDlwRhx5TjSwtmocCifPwQpDpshReBfsxPrk4DhNu3jshue1dy8VcXxuA" },
+            { name: "MAG-7", skin: "Silver", rarity: "blue", price: 0.50, img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8n5G3wiNV0OGnZLJoMs-fB2CY1aAm5Lc7SSyxl0t1sj7Wn9ipdXuRZwMkD5NzRbVftkPsx9LvZOjjsgyMlcsbmlF3IVC_" },
+            { name: "MP9", skin: "Bulldozer", rarity: "purple", price: 25.00, img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f7i1k9veiZKt6H_yaCW-Ej-tztbQ5Hy2wxklw5TiDnt_4eC_GOFR1XJdzQ-AMskXswNbvNuvq4wPAy9USwXKj73o" },
+        ];
+
+        const SCATTER_ITEM = {
+            name: "BONUS",
+            skin: "SCATTER",
+            rarity: "gold",
+            price: 0,
+            type: "scatter",
+            img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV"
+        };
+
+        /* --- AUDIO SYSTEM (Web Audio API) --- */
+        class SoundEngine {
+            constructor() {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.3; // Global volume
+                this.masterGain.connect(this.ctx.destination);
+            }
+
+            playTone(freq, type, duration, vol = 1) {
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playTick() {
+                this.playTone(800, 'square', 0.05, 0.2);
+            }
+
+            playStart() {
+                this.playTone(200, 'sine', 0.5, 0.5);
+                setTimeout(() => this.playTone(400, 'triangle', 0.3, 0.3), 100);
+            }
+
+            playWin() {
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    setTimeout(() => this.playTone(freq, 'sine', 0.6, 0.4), i * 100);
+                });
+            }
+
+            playScatter() {
+                this.playTone(150, 'sawtooth', 0.8, 0.8);
+                setTimeout(() => this.playTone(150, 'sawtooth', 0.8, 0.8), 200);
+                setTimeout(() => this.playTone(150, 'sawtooth', 0.8, 0.8), 400);
+            }
+        }
+
+        const audio = new SoundEngine();
+
+        /* --- GAME STATE --- */
+        let state = {
+            balance: 1000.00,
+            isSpinning: false,
+            lastWin: 0
+        };
+
+        /* --- DOM ELEMENTS --- */
+        const elReel = document.getElementById('reel');
+        const elBalance = document.getElementById('balance');
+        const elLastWin = document.getElementById('last-win');
+        const elSpinBtn = document.getElementById('spin-btn');
+        const elHistory = document.getElementById('history-container');
+        const elModal = document.getElementById('modal');
+        const elWrapper = document.getElementById('reel-wrapper');
+
+        /* --- LOGIC --- */
+
+        function updateBalance(amount) {
+            state.balance += amount;
+            elBalance.innerText = state.balance.toFixed(2);
+        }
+
+        function createCard(item, isScatter = false) {
+            const div = document.createElement('div');
+            div.className = `card rarity-${item.rarity} ${isScatter ? 'scatter' : ''}`;
+            div.innerHTML = `
+                <div class="card-info">
+                    <div class="card-name">${item.name}</div>
+                    <div class="card-skin">${item.skin}</div>
+                </div>
+                <img src="${item.img}" alt="${item.skin}">
+                <div class="card-price">${isScatter ? 'BONUS' : '$' + item.price.toFixed(2)}</div>
+            `;
+            return div;
+        }
+
+        function getRandomItem() {
+            const r = Math.random();
+            if (r < 0.60) return ITEMS[6]; // Blue
+            if (r < 0.85) return ITEMS[7]; // Blue
+            if (r < 0.95) return ITEMS[8]; // Purple
+            if (r < 0.98) return ITEMS[5]; // Purple
+            if (r < 0.99) return ITEMS[4]; // Pink
+            if (r < 0.995) return ITEMS[3]; // Red
+            if (r < 0.999) return ITEMS[0]; // Red
+            return ITEMS[2]; // Gold
+        }
+
+        function generateReelStrip(forceScatter = false, suppressScatter = false) {
+            const strip = [];
+            for (let i = 0; i < CONFIG.totalCards; i++) {
+                if (i === CONFIG.winnerIndex) {
+                    if (!suppressScatter && (forceScatter || Math.random() < CONFIG.scatterChance)) {
+                        strip.push(SCATTER_ITEM);
+                    } else {
+                        strip.push(getRandomItem());
+                    }
+                } else {
+                    if (!suppressScatter && Math.random() < 0.03) {
+                        strip.push(SCATTER_ITEM);
+                    } else {
+                        strip.push(getRandomItem());
+                    }
+                }
+            }
+            return strip;
+        }
+
+        function renderReel(strip) {
+            elReel.innerHTML = '';
+            strip.forEach(item => {
+                elReel.appendChild(createCard(item, item.type === 'scatter'));
+            });
+            elReel.style.transition = 'none';
+            elReel.style.transform = 'translateX(0px)';
+        }
+
+        function addToHistory(item) {
+            const div = document.createElement('div');
+            div.className = `history-item rarity-${item.rarity}`;
+            div.innerHTML = `
+                <img src="${item.img}" alt="${item.skin}">
+                <div class="history-info">
+                    <div class="history-name">${item.name}</div>
+                    <div class="history-price">$${item.price.toFixed(2)}</div>
+                </div>
+            `;
+            elHistory.prepend(div);
+            if (elHistory.children.length > 20) elHistory.lastChild.remove();
+
+            // Animate in
+            div.style.opacity = '0';
+            div.style.transform = 'translateY(-20px)';
+            requestAnimationFrame(() => {
+                div.style.transition = 'all 0.3s ease-out';
+                div.style.opacity = '1';
+                div.style.transform = 'translateY(0)';
+            });
+        }
+
+        function triggerWinParticles(rect) {
+            const count = 30;
+            const center = {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+            };
+
+            for (let i = 0; i < count; i++) {
+                createParticle(center.x, center.y);
+            }
+        }
+
+        function createParticle(x, y) {
+            const p = document.createElement('div');
+            p.style.position = 'fixed';
+            p.style.left = x + 'px';
+            p.style.top = y + 'px';
+            p.style.width = (Math.random() * 6 + 4) + 'px';
+            p.style.height = p.style.width;
+            p.style.background = `hsl(${Math.random() * 60 + 30}, 100%, 70%)`; // Gold/Yellow
+            p.style.borderRadius = '50%';
+            p.style.pointerEvents = 'none';
+            p.style.zIndex = '1000';
+            document.body.appendChild(p);
+
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = Math.random() * 100 + 50;
+            const dx = Math.cos(angle) * velocity;
+            const dy = Math.sin(angle) * velocity;
+
+            const animation = p.animate([
+                { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 }
+            ], {
+                duration: Math.random() * 500 + 500,
+                easing: 'cubic-bezier(0, .9, .57, 1)'
+            });
+
+            animation.onfinish = () => p.remove();
+        }
+
+        async function spin(isFree = false, multiplier = 1) {
+            if (state.isSpinning) return;
+
+            if (!isFree) {
+                if (state.balance < CONFIG.casePrice) {
+                    alert("Not enough money!");
+                    return;
+                }
+                updateBalance(-CONFIG.casePrice);
+            }
+
+            state.isSpinning = true;
+            elSpinBtn.disabled = true;
+            // REFINEMENT: No blur effect
+            elWrapper.style.filter = "none";
+
+            try {
+                try { audio.playStart(); } catch (e) { }
+
+                const strip = generateReelStrip(false, isFree);
+                renderReel(strip);
+                const winner = strip[CONFIG.winnerIndex];
+
+                const cardFullWidth = CONFIG.cardWidth + CONFIG.gap;
+                const jitter = (Math.random() * (CONFIG.cardWidth - 20)) - (CONFIG.cardWidth / 2 - 10);
+                const targetX = - (CONFIG.winnerIndex * cardFullWidth) - (CONFIG.cardWidth / 2) + jitter;
+
+                elReel.offsetHeight; // Force reflow
+
+                const duration = isFree ? 1000 : CONFIG.spinDuration;
+
+                // REFINEMENT: Smoother easing without bounce-back
+                elReel.style.transition = `transform ${duration / 1000}s cubic-bezier(0.2, 0.8, 0.2, 1)`;
+                elReel.style.transform = `translateX(${targetX}px)`;
+
+                let tickInterval = setInterval(() => {
+                    if (Math.random() > 0.7) {
+                        try { audio.playTick(); } catch (e) { }
+                    }
+                }, 100);
+
+                await new Promise(r => setTimeout(r, duration));
+                clearInterval(tickInterval);
+
+                // Get winner element position for particles
+                const winnerCard = elReel.children[CONFIG.winnerIndex];
+                const rect = winnerCard.getBoundingClientRect();
+
+                if (winner.type === 'scatter') {
+                    try { audio.playScatter(); } catch (e) { }
+                    elWrapper.classList.add('shake');
+                    setTimeout(() => elWrapper.classList.remove('shake'), 500);
+                    triggerWinParticles(rect);
+
+                    if (!isFree) {
+                        await triggerBonusFeature();
+                    }
+                } else {
+                    try { audio.playWin(); } catch (e) { }
+                    const winVal = winner.price * multiplier;
+                    updateBalance(winVal);
+                    elLastWin.innerText = '$' + winVal.toFixed(2);
+                    addToHistory(winner);
+                    triggerWinParticles(rect);
+
+                    document.body.classList.add('flash');
+                    setTimeout(() => document.body.classList.remove('flash'), 200);
+                }
+
+            } catch (err) {
+                console.error("Spin error:", err);
+                alert("Something went wrong with the spin. Please try again.");
+            } finally {
+                if (!document.body.classList.contains('bonus-active')) {
+                    state.isSpinning = false;
+                    elSpinBtn.disabled = false;
+                } else {
+                    state.isSpinning = false;
+                }
+            }
+        }
+
+        async function triggerBonusFeature() {
+            elModal.classList.add('active');
+            document.body.classList.add('bonus-active'); // Activate Luxury Theme
+
+            const bonusType = Math.random() > 0.5 ? 'FRENZY' : 'HIGH_ROLLER';
+            const title = document.getElementById('bonus-title');
+            const desc = document.getElementById('bonus-desc');
+            const badge = document.getElementById('bonus-badge');
+
+            title.innerText = "CHOOSING BONUS...";
+            badge.innerText = "???";
+
+            await new Promise(r => setTimeout(r, 1500));
+
+            if (bonusType === 'FRENZY') {
+                title.innerText = "FRENZY MODE";
+                desc.innerText = "10 FREE SPINS ACTIVATED!";
+                badge.innerText = "10x SPINS";
+                badge.style.background = "#d32ce6";
+
+                await new Promise(r => setTimeout(r, 1500));
+                elModal.classList.remove('active');
+
+                // Setup Button
+                elSpinBtn.classList.add('frenzy');
+
+                // FIX: Unlock spin state because parent spin is still waiting
+                state.isSpinning = false;
+
+                for (let i = 0; i < 10; i++) {
+                    elSpinBtn.innerText = `FREE SPIN ${10 - i}`;
+                    await spin(true, 1);
+                    await new Promise(r => setTimeout(r, 500));
+                }
+
+                // Cleanup
+                elSpinBtn.classList.remove('frenzy');
+                elSpinBtn.innerText = "OPEN CASE ($2.50)";
+                document.body.classList.remove('bonus-active');
+                elSpinBtn.disabled = false;
+
+            } else {
+                title.innerText = "HIGH ROLLER";
+                desc.innerText = "NEXT DROP VALUE x3";
+                badge.innerText = "3x VALUE";
+                badge.style.background = "#eb4b4b";
+
+                await new Promise(r => setTimeout(r, 1500));
+                elModal.classList.remove('active');
+
+                // Setup Button
+                elSpinBtn.classList.add('high-roller');
+                elSpinBtn.innerText = "3x MULTIPLIER SPIN";
+
+                // FIX: Unlock spin state
+                state.isSpinning = false;
+
+                await spin(true, 3);
+
+                // Cleanup
+                elSpinBtn.classList.remove('high-roller');
+                elSpinBtn.innerText = "OPEN CASE ($2.50)";
+                document.body.classList.remove('bonus-active');
+                elSpinBtn.disabled = false;
+            }
+        }
+
+        function renderDropTable() {
+            const grid = document.getElementById('drop-grid');
+            const drops = [
+                { item: ITEMS[6], chance: 60.0 }, // Blue
+                { item: ITEMS[7], chance: 25.0 }, // Blue
+                { item: ITEMS[8], chance: 10.0 }, // Purple
+                { item: ITEMS[5], chance: 3.0 },  // Purple
+                { item: ITEMS[4], chance: 1.0 },  // Pink
+                { item: ITEMS[3], chance: 0.5 },  // Red
+                { item: ITEMS[0], chance: 0.4 },  // Red
+                { item: ITEMS[2], chance: 0.1 }   // Gold
+            ];
+
+            grid.innerHTML = drops.map(d => `
+                <div class="drop-item rarity-${d.item.rarity}">
+                    <img src="${d.item.img}" alt="${d.item.skin}">
+                    <div class="drop-info">
+                        <div class="drop-name">${d.item.name} | ${d.item.skin}</div>
+                        <div class="drop-chance">${d.chance}%</div>
+                        <div class="drop-bar">
+                            <div class="drop-bar-fill" style="width: ${d.chance}%; background: var(--rarity-${d.item.rarity})"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        elSpinBtn.addEventListener('click', () => spin());
+        renderReel(generateReelStrip());
+        renderDropTable();
+
+    </script>
+</body>
+
+</html>
